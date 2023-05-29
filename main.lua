@@ -4,6 +4,20 @@ function set_branch_name(all_strings, name, xy)
     all_strings[y] = string.sub(all_strings[y], 1, x - 1) .. name .. string.sub(all_strings[y], x + 6)
 end
 
+function hilite_pos_main_branch(all_strings, depth, main_pos)
+    local i = depth
+    all_strings[2*i-1] = string.sub(all_strings[2*i-1], 1, main_pos[i]-1) .. "RX".. string.sub(all_strings[2*i-1], main_pos[i]+2)
+end
+
+function hilite_pos(all_strings, branch_number, depth_in_branch, max_branch_depth)
+    local l = branch_number
+    local i = depth_in_branch
+    local d = max_branch_depth
+    local j = math.min(i, d)
+    local y = 2*l+2*j-1
+    all_strings[y] = string.sub(all_strings[y], 1, br1_pos[i]-1) .. "G"..i .. string.sub(all_strings[y], br1_pos[i]+2)
+end
+
 function run_pda_ui( self, entity )
     local max_len = 30
     local list = {}
@@ -33,9 +47,9 @@ function run_pda_ui( self, entity )
     "      {d|        |   |}  ERROR!\n",
     "L4    {yx}        {yx}   {yx}{d--------\\}\n",
     "      {d|} ERROR! {d|   |        |}\n",
-    "L5  {yx}{d-}{yx}      {yx}{d-}{yx}   {yx}{d-}{yx}      {yx}\n",
+    "L5  {mx}{d-}{yx}      {mx}{d-}{yx}   {yx}{d-}{mx}      {yx}\n",
     "      {d|        |   |} ERROR! {d|}\n",
-    "L6    {d\\--------+---}{yx}        {yx}{d-}{yx}\n",
+    "L6    {d\\--------+---}{yx}        {yx}{d-}{mx}\n",
     "                   {d|        |}\n",
     "L7                 {yx}{d--------/}\n",
     "                   {d|}\n",
@@ -53,16 +67,16 @@ function run_pda_ui( self, entity )
         {9,2},
         {26,6},
         {12,8},
-        {30,10},
+        {25,10},
     }
     br_name_loc = {br_name_loc_2, br_name_loc_3}
 
     -- x values
-    local main_pos = {21, 21, 24, 27, 27, 39, 24}
-    local br1_pos = {36, 42, 45, 53}
-    local br2_pos = {8, 8, 14, 6}
-    local br3_pos = {20, 32, 24}
-    local sp_br_pos = {35}
+    local main_pos = {{21,24,27,27,39,24,21},{21, 21, 24, 27, 27, 39, 24}}
+    local br1_pos = {{8, 8, 14, 6},{36, 42, 45, 53}}
+    local br2_pos = {{20, 32, 24},{8, 8, 14, 6}}
+    local br3_pos = {{57, 36, 44},{20, 32, 24}}
+    local sp_br_pos = {{47},{35}}
 
     names = {
         level_callisto_mines           = "Mines ",
@@ -100,7 +114,7 @@ function run_pda_ui( self, entity )
     local linfo = world:get_level().level_info
     local episode = linfo.episode
     local depth = linfo.depth
-    if episode == 1 and depth == 1 then
+    if episode == 1 and depth < 1 then -- FIXME
             table.insert( list, {
                     name = "Map",
                     target = self,
@@ -136,7 +150,6 @@ function run_pda_ui( self, entity )
         for _,v in ipairs(world.data.level) do
             for i = 1,4 do
                 if v.branch_index == branch_index[episode][i] and names[v.blueprint] ~= nil then
-                    nova.log("Found: "..tostring(v.blueprint)..", name: "..tostring(names[v.blueprint]))
                     name_br[i] = names[v.blueprint]
                     if i == 2 then
                         level_2_depth = level_2_depth + 1
@@ -145,56 +158,57 @@ function run_pda_ui( self, entity )
             end
         end
 
-        br_name_loc = br_name_loc[level_2_depth - 1]
-        all_strings = all_strings[level_2_depth - 1]
+        local i = level_2_depth - 1
+        br_name_loc = br_name_loc[i]
+        all_strings = all_strings[i]
+        main_pos = main_pos[i]
+        br1_pos = br1_pos[i]
+        br2_pos = br2_pos[i]
+        br3_pos = br3_pos[i]
+        sp_br_pos = sp_br_pos[i]
 
         for i = 1,4 do
             set_branch_name(all_strings, name_br[i], br_name_loc[i])
         end
 
-    --     local l = 2
-    --     local d = 3
-    --     for i = 1,d+1 do
-    --         local j = math.min(i, d)
-    --         local y = 2*l+2*j-1
-    --         all_strings[y] = string.sub(all_strings[y], 1, br1_pos[i]-1) .. "G"..i .. string.sub(all_strings[y], br1_pos[i]+2)
-    --     end
+        local l = world.data.level[world.data.current]
+        if l.branch_index == episode and names[l.blueprint] == nil then
+            hilite_pos_main_branch(all_strings, linfo.depth, main_pos)
+        end
 
-    --     l = 3
-    --     d = 3
-    --     for i = 1,d+1 do
-    --         local j = math.min(i, d)
-    --         local y = 2*l+2*j-1
-    --         all_strings[y] = string.sub(all_strings[y], 1, br2_pos[i]-1) .. "R"..i .. string.sub(all_strings[y], br2_pos[i]+2)
-    --     end
+        -- hilite_pos(all_strings, branch_number, depth_in_branch, max_branch_depth)
 
-    --     local l = 4
-    --     local d = 2
-    --     for i = 1,d+1 do
-    --         local j = math.min(i, d)
-    --         local y = 2*l+2*j-1
-    --         all_strings[y] = string.sub(all_strings[y], 1, br3_pos[i]-1) .. "C"..i .. string.sub(all_strings[y], br3_pos[i]+2)
-    --     end
+        -- local l = 2
+        -- local d = 3
+        -- for i = 1,d+1 do
+        --     local j = math.min(i, d)
+        --     local y = 2*l+2*j-1
+        --     all_strings[y] = string.sub(all_strings[y], 1, br1_pos[i]-1) .. "G"..i .. string.sub(all_strings[y], br1_pos[i]+2)
+        -- end
 
-    --     l = 4
-    --     y = 2*l+1
-    --     all_strings[y] = string.sub(all_strings[y], 1, sp_br_pos[1]-1) .. "W!" .. string.sub(all_strings[y], sp_br_pos[1]+2)
+        -- l = 3
+        -- d = level_2_depth
+        -- for i = 1,d+1 do
+        --     local j = math.min(i, d)
+        --     local y = 2*l+2*j-1
+        --     all_strings[y] = string.sub(all_strings[y], 1, br2_pos[i]-1) .. "R"..i .. string.sub(all_strings[y], br2_pos[i]+2)
+        -- end
 
-    --     for i = 1,7 do
-    --         all_strings[2*i-1] = string.sub(all_strings[2*i-1], 1, main_pos[i]-1) .. "!"..i.. string.sub(all_strings[2*i-1], main_pos[i]+2)
-    --     end
+        -- l = 4
+        -- d = 2
+        -- for i = 1,d+1 do
+        --     local j = math.min(i, d)
+        --     local y = 2*l+2*j-1
+        --     all_strings[y] = string.sub(all_strings[y], 1, br3_pos[i]-1) .. "C"..i .. string.sub(all_strings[y], br3_pos[i]+2)
+        -- end
 
+        -- l = 4
+        -- y = 2*l+1
+        -- all_strings[y] = string.sub(all_strings[y], 1, sp_br_pos[1]-1) .. "W!" .. string.sub(all_strings[y], sp_br_pos[1]+2)
 
-
-
-        -- Callisto branches: branch_index = 5,6,7
-        -- Europa branches: 8,9,10
-        -- Io branches: 11,12,13
-        -- Callisto special: 1
-        -- Europa special: 2
-        -- Io special: 3
-        -- Shattered abyss: 4
-        -- Purgatory: 1
+        -- for i = 1,7 do
+        --     all_strings[2*i-1] = string.sub(all_strings[2*i-1], 1, main_pos[i]-1) .. "!"..i.. string.sub(all_strings[2*i-1], main_pos[i]+2)
+        -- end
 
         local s = ""
         for i = 1,14 do
