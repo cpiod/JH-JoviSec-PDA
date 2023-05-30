@@ -9,13 +9,14 @@ function hilite_pos_main_branch(all_strings, depth, main_pos)
     all_strings[2*i-1] = string.sub(all_strings[2*i-1], 1, main_pos[i]-1) .. "RX".. string.sub(all_strings[2*i-1], main_pos[i]+2)
 end
 
-function hilite_pos(all_strings, branch_number, depth_in_branch, max_branch_depth)
-    local l = branch_number
-    local i = depth_in_branch
+function hilite_pos_side_branch(all_strings, branch_number, depth, max_branch_depth, br_pos)
+    nova.log("Hilite: "..branch_number.." "..depth.." "..max_branch_depth)
+    local l = branch_number + 1
+    local i = depth - branch_number - 1 -- depth in branch
     local d = max_branch_depth
     local j = math.min(i, d)
     local y = 2*l+2*j-1
-    all_strings[y] = string.sub(all_strings[y], 1, br1_pos[i]-1) .. "G"..i .. string.sub(all_strings[y], br1_pos[i]+2)
+    all_strings[y] = string.sub(all_strings[y], 1, br_pos[i]-1) .. "RX" .. string.sub(all_strings[y], br_pos[i]+2)
 end
 
 function run_pda_ui( self, entity )
@@ -174,41 +175,21 @@ function run_pda_ui( self, entity )
         local l = world.data.level[world.data.current]
         if l.branch_index == episode and names[l.blueprint] == nil then
             hilite_pos_main_branch(all_strings, linfo.depth, main_pos)
+        elseif l.branch_index == episode then
+            -- special level reachable from main branch
+            local y = 9
+            all_strings[y] = string.sub(all_strings[y], 1, sp_br_pos[1]-1) .. "RX" .. string.sub(all_strings[y], sp_br_pos[1]+2)
+        else
+            local branch_index = (l.branch_index - 5) % 3 + 1
+            local max_branch_depth = {3,3,2}
+            max_branch_depth[2] = level_2_depth
+            local br_pos = {br1_pos, br2_pos, br3_pos}
+            local depth = linfo.depth
+            if l.returnable then
+                depth = depth + 1 -- hack for special levels
+            end
+            hilite_pos_side_branch(all_strings, branch_index, depth, max_branch_depth[branch_index], br_pos[branch_index])
         end
-
-        -- hilite_pos(all_strings, branch_number, depth_in_branch, max_branch_depth)
-
-        -- local l = 2
-        -- local d = 3
-        -- for i = 1,d+1 do
-        --     local j = math.min(i, d)
-        --     local y = 2*l+2*j-1
-        --     all_strings[y] = string.sub(all_strings[y], 1, br1_pos[i]-1) .. "G"..i .. string.sub(all_strings[y], br1_pos[i]+2)
-        -- end
-
-        -- l = 3
-        -- d = level_2_depth
-        -- for i = 1,d+1 do
-        --     local j = math.min(i, d)
-        --     local y = 2*l+2*j-1
-        --     all_strings[y] = string.sub(all_strings[y], 1, br2_pos[i]-1) .. "R"..i .. string.sub(all_strings[y], br2_pos[i]+2)
-        -- end
-
-        -- l = 4
-        -- d = 2
-        -- for i = 1,d+1 do
-        --     local j = math.min(i, d)
-        --     local y = 2*l+2*j-1
-        --     all_strings[y] = string.sub(all_strings[y], 1, br3_pos[i]-1) .. "C"..i .. string.sub(all_strings[y], br3_pos[i]+2)
-        -- end
-
-        -- l = 4
-        -- y = 2*l+1
-        -- all_strings[y] = string.sub(all_strings[y], 1, sp_br_pos[1]-1) .. "W!" .. string.sub(all_strings[y], sp_br_pos[1]+2)
-
-        -- for i = 1,7 do
-        --     all_strings[2*i-1] = string.sub(all_strings[2*i-1], 1, main_pos[i]-1) .. "!"..i.. string.sub(all_strings[2*i-1], main_pos[i]+2)
-        -- end
 
         local s = ""
         for i = 1,14 do
@@ -280,6 +261,11 @@ register_blueprint "challenge_test_pda"
         on_create_player = [[
             function( self, player )
                 player:attach( "trait_pda" )
+                player:attach( "exo_armor_ablative" )
+                player:attach( "adv_helmet_blue" )
+                player:attach( "exo_egls" )
+                player:attach( "exo_cpistol" )
+                player.progression.experience = 10000
             end
         ]],
     },
