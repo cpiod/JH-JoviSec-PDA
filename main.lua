@@ -4,76 +4,76 @@ function set_branch_name(all_strings, name, xy)
     all_strings[y] = string.sub(all_strings[y], 1, x - 1) .. name .. string.sub(all_strings[y], x + 6)
 end
 
-function hilite_pos_main_branch(all_strings, depth, main_pos)
+function hilite_pos_main_branch(all_strings, depth, main_pos, str)
     local i = depth
-    all_strings[2*i-1] = string.sub(all_strings[2*i-1], 1, main_pos[i]-1) .. "RX".. string.sub(all_strings[2*i-1], main_pos[i]+2)
+    all_strings[2*i-1] = string.sub(all_strings[2*i-1], 1, main_pos[i]-1) .. str .. string.sub(all_strings[2*i-1], main_pos[i]+2)
 end
 
 function hilite_pos_side_branch(all_strings, branch_number, depth, max_branch_depth, br_pos)
-    nova.log("Hilite: "..branch_number.." "..depth.." "..max_branch_depth)
     local l = branch_number + 1
     local i = depth - branch_number - 1 -- depth in branch
     local d = max_branch_depth
     local j = math.min(i, d)
     local y = 2*l+2*j-1
-    all_strings[y] = string.sub(all_strings[y], 1, br_pos[i]-1) .. "RX" .. string.sub(all_strings[y], br_pos[i]+2)
+    all_strings[y] = string.sub(all_strings[y], 1, br_pos[i]-1) .. "GX" .. string.sub(all_strings[y], br_pos[i]+2)
 end
 
 function run_pda_ui( self, entity )
-    local max_len = 30
     local list = {}
     local strings_3 = {
-    "L1                 {yx}\n",
+    "L1                 {!o}\n",
     "                   {d|}  ERROR!\n",
-    "L2                 {yx}{d--------\\}\n",
+    "L2                 {!o}{d--------\\}\n",
     "        ERROR!     {d|        |}\n",
-    "L3    {d/------------}{yx}        {yx}\n",
+    "L3    {d/------------}{!o}        {!o}\n",
     "      {d|            |        |}\n",
-    "L4    {yx}        {d/---}{yx}        {d}{yx}\n",
+    "L4    {!o}        {d/---}{!o}        {d}{!o}\n",
     "      {d|        |   |} ERROR! {d|}\n",
-    "L5    {yx}        {yx}   {yx}{d-}{mx}      {yx}{d-}{mx}\n",
+    "L5    {!o}        {!o}   {!o}{d-}{mo}      {!o}{d-}{mo}\n",
     "      {d|} ERROR! {d|   |        |}\n",
-    "L6  {mx}{d-}{yx}      {mx}{d-}{yx}   {yx}{d--------/}\n",
+    "L6  {mo}{d-}{!o}      {mo}{d-}{!o}   {!o}{d--------/}\n",
     "      {d|        |   |}\n",
-    "L7    {d\\--------+---}{yx}\n",
-    "                   {d|}\n"
+    "L7    {d\\--------+---}{!o}\n",
+    "                   {d|}\n",
+    "{GX}: you  {Rx}: red lock  {Yx}: mt lock"
     }
 
     local strings_2 = {
-    "L1                 {yx}\n",
+    "L1                 {!o}\n",
     "        ERROR!     {d|}\n",
-    "L2    {d/------------}{yx}\n",
+    "L2    {d/------------}{!o}\n",
     "      {d|            |}\n",
-    "L3    {yx}        {d/---}{yx}\n",
+    "L3    {!o}        {d/---}{!o}\n",
     "      {d|        |   |}  ERROR!\n",
-    "L4    {yx}        {yx}   {yx}{d--------\\}\n",
+    "L4    {!o}        {!o}   {!o}{d--------\\}\n",
     "      {d|} ERROR! {d|   |        |}\n",
-    "L5  {mx}{d-}{yx}      {mx}{d-}{yx}   {yx}{d-}{mx}      {yx}\n",
+    "L5  {mo}{d-}{!o}      {mo}{d-}{!o}   {!o}{d-}{mo}      {!o}\n",
     "      {d|        |   |} ERROR! {d|}\n",
-    "L6    {d\\--------+---}{yx}        {yx}{d-}{mx}\n",
+    "L6    {d\\--------+---}{!o}        {!o}{d-}{mo}\n",
     "                   {d|        |}\n",
-    "L7                 {yx}{d--------/}\n",
+    "L7                 {!o}{d--------/}\n",
     "                   {d|}\n",
+    "{GX}: you  {Rx}: red lock  {Yx}: mt lock"
     }
 
     local all_strings = {strings_2, strings_3}
 
     local br_name_loc_3 = {
-        {26,2},
-        {9,4},
-        {12,10},
-        {25,8}
+        {26, 2},
+        {9, 4},
+        {12, 10},
+        {25, 8}
     }
     local br_name_loc_2 = {
-        {9,2},
-        {26,6},
-        {12,8},
-        {25,10},
+        {9, 2},
+        {12, 8},
+        {26, 6},
+        {25, 10},
     }
     br_name_loc = {br_name_loc_2, br_name_loc_3}
 
     -- x values
-    local main_pos = {{21,24,27,27,39,24,21},{21, 21, 24, 27, 27, 39, 24}}
+    local main_pos = {{21, 24, 27, 27, 39, 24, 21},{21, 21, 24, 27, 27, 39, 24}}
     local br1_pos = {{8, 8, 14, 6},{36, 42, 45, 53}}
     local br2_pos = {{20, 32, 24},{8, 8, 14, 6}}
     local br3_pos = {{57, 36, 44},{20, 32, 24}}
@@ -101,21 +101,17 @@ function run_pda_ui( self, entity )
     }
 
     local episode = world:get_level().level_info.episode
-    nova.log("PDA! episode:"..episode)
     local current = world.data.current
-    nova.log("PDA! current:"..current)
     local l = world.data.level[world.data.current]
-    for k,v in pairs(l) do
-        nova.log(tostring(k).." "..tostring(v))
-    end
-    for k,v in ipairs(world.data.level) do
-        nova.log(k.." "..v.name.." "..v.blueprint.." "..v.depth.." "..v.branch_index)
-    end
-
     local linfo = world:get_level().level_info
     local episode = linfo.episode
     local depth = linfo.depth
-    if episode == 1 and depth < 1 then -- FIXME
+
+    for k,v in pairs(l) do
+        nova.log(tostring(k).." "..tostring(v))
+    end
+
+    if episode == 1 and depth == 1 then
             table.insert( list, {
                     name = "Map",
                     target = self,
@@ -144,7 +140,7 @@ function run_pda_ui( self, entity )
                     cancel = true,
     })
     else
-        local branch_index = {{5,6,7,1},{8,9,10,2},{11,12,13,3}}
+        local branch_index = {{5, 6, 7, 1},{8, 9, 10, 2},{11, 12, 13, 3}}
         local name_br = {}
         local level_2_depth = 0
 
@@ -172,13 +168,12 @@ function run_pda_ui( self, entity )
             set_branch_name(all_strings, name_br[i], br_name_loc[i])
         end
 
-        local l = world.data.level[world.data.current]
         if l.branch_index == episode and names[l.blueprint] == nil then
-            hilite_pos_main_branch(all_strings, linfo.depth, main_pos)
+            hilite_pos_main_branch(all_strings, linfo.depth, main_pos, "GX")
         elseif l.branch_index == episode then
             -- special level reachable from main branch
             local y = 9
-            all_strings[y] = string.sub(all_strings[y], 1, sp_br_pos[1]-1) .. "RX" .. string.sub(all_strings[y], sp_br_pos[1]+2)
+            all_strings[y] = string.sub(all_strings[y], 1, sp_br_pos[1]-1) .. "GX" .. string.sub(all_strings[y], sp_br_pos[1]+2)
         else
             local branch_index = (l.branch_index - 5) % 3 + 1
             local max_branch_depth = {3,3,2}
@@ -191,8 +186,19 @@ function run_pda_ui( self, entity )
             hilite_pos_side_branch(all_strings, branch_index, depth, max_branch_depth[branch_index], br_pos[branch_index])
         end
 
+
+        for d,v in ipairs(world.data.level) do
+            if v.episode == episode then
+                if v.branch_lock == "elevator_locked" then -- not tested
+                    hilite_pos_main_branch(all_strings, v.depth, main_pos, "Rx")
+                elseif v.branch_lock == "elevator_broken" then
+                    hilite_pos_main_branch(all_strings, v.depth, main_pos, "Yx")
+                end
+            end
+        end
+
         local s = ""
-        for i = 1,14 do
+        for i = 1,15 do
             s = s .. all_strings[i]
         end
     --    iterate over all quest message. check jh.lua, line 1026
@@ -205,8 +211,8 @@ function run_pda_ui( self, entity )
         })
     end
     list.title = "JoviSec PDA - HelloS 1.6"
-    list.size  = coord( math.max( 30, max_len + 6 ), 0 )
-    list.fsize = 14
+    list.size  = coord( math.max( 30, 36 ), 0 )
+    list.fsize = 15
     ui:terminal( entity, what, list )
 end
 
