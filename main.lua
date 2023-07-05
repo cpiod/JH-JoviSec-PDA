@@ -1,7 +1,23 @@
+function AttachInBlueprint(target_id,add_id)
+    -- function by Deemzul
+    local orig_string = blueprints[target_id].callbacks["on_create"]
+    local i = 0
+    local v = 0
+    while true do
+      i = orig_string:find("end", i+1)
+      if i == nil then break end
+      v = i
+    end
+    local addstring = [[self:attach( "]]..add_id..[[" ) end]] -- space and newline are functionally the same
+    blueprints[target_id].callbacks["on_create"] = orig_string:sub(1, v - 1)..addstring
+end
+
 function set_branch_name(all_strings, name, xy)
-    local x = xy[1]
-    local y = xy[2]
-    all_strings[y] = string.sub(all_strings[y], 1, x - 1) .. name .. string.sub(all_strings[y], x + 6)
+    if name~=nil then
+        local x = xy[1]
+        local y = xy[2]
+        all_strings[y] = string.sub(all_strings[y], 1, x - 1) .. name .. string.sub(all_strings[y], x + 6)
+    end
 end
 
 function hilite_pos_main_branch(all_strings, depth, main_pos, str)
@@ -20,6 +36,7 @@ end
 
 function run_pda_ui( self, entity )
     local list = {}
+    list.fsize = 1
     local strings_3 = {
     "L1                 {!o}\n",
     "                   {d|}  ERROR!\n",
@@ -92,7 +109,7 @@ function run_pda_ui( self, entity )
         level_europa_ruins             = "Ruins ",
         level_europa_refueling         = "Refuel",
         level_europa_pit               = " Pit  ",
-        level_io_blacksit              = "B.Site",
+        level_io_blacksite             = "B.Site",
         level_io_armory                = " Labs ",
         level_io_mephitic              = "Mephi.",
         level_io_halls                 = "Halls ",
@@ -111,21 +128,48 @@ function run_pda_ui( self, entity )
         nova.log(tostring(k).." "..tostring(v))
     end
 
-    if episode == 1 and depth == 1 then
+    depth = depth - 7 * (episode - 1)
+
+    local branch_index = {{5, 6, 7, 1},{8, 9, 10, 2},{11, 12, 13, 3}}
+    local name_br = {}
+    local level_2_depth = 0
+
+    for _,v in ipairs(world.data.level) do
+        for i = 1,4 do
+            if v.branch_index == branch_index[episode][i] and names[v.blueprint] ~= nil then
+                nova.log("Branch: "..names[v.blueprint])
+                name_br[i] = names[v.blueprint]
+                if i == 2 then
+                    level_2_depth = level_2_depth + 1
+                end
+            end
+        end
+    end
+
+    nova.log("Level 2 depth: "..level_2_depth)
+
+    if level_2_depth < 2 or level_2_depth > 3 then
+        table.insert( list, {
+                name = "Map",
+                target = self,
+                desc = "Unknown location",
+                cancel = true,
+        })
+    elseif episode == 1 and depth <= 1 then
             table.insert( list, {
                     name = "Map",
                     target = self,
                     desc = "Go to Callisto L2!",
                     cancel = true,
     })
-    elseif episode == 2 and depth == 8 then
+    elseif episode == 2 and depth <= 1 then
             table.insert( list, {
                     name = "Map",
                     target = self,
                     desc = "Go to Europa L2!",
                     cancel = true,
     })
-    elseif episode == 3 and depth == 15 then
+    elseif episode == 3 and depth <= 1 then
             table.insert( list, {
                     name = "Map",
                     target = self,
@@ -139,22 +183,14 @@ function run_pda_ui( self, entity )
                     desc = "No map for Dante station",
                     cancel = true,
     })
+    elseif episode > 4 then
+            table.insert( list, {
+                    name = "Map",
+                    target = self,
+                    desc = "Unknown location",
+                    cancel = true,
+            })
     else
-        local branch_index = {{5, 6, 7, 1},{8, 9, 10, 2},{11, 12, 13, 3}}
-        local name_br = {}
-        local level_2_depth = 0
-
-        for _,v in ipairs(world.data.level) do
-            for i = 1,4 do
-                if v.branch_index == branch_index[episode][i] and names[v.blueprint] ~= nil then
-                    name_br[i] = names[v.blueprint]
-                    if i == 2 then
-                        level_2_depth = level_2_depth + 1
-                    end
-                end
-            end
-        end
-
         local i = level_2_depth - 1
         br_name_loc = br_name_loc[i]
         all_strings = all_strings[i]
@@ -169,7 +205,7 @@ function run_pda_ui( self, entity )
         end
 
         if l.branch_index == episode and names[l.blueprint] == nil then
-            hilite_pos_main_branch(all_strings, linfo.depth, main_pos, "GX")
+            hilite_pos_main_branch(all_strings, depth, main_pos, "GX")
         elseif l.branch_index == episode then
             -- special level reachable from main branch
             local y = 9
@@ -179,20 +215,20 @@ function run_pda_ui( self, entity )
             local max_branch_depth = {3,3,2}
             max_branch_depth[2] = level_2_depth
             local br_pos = {br1_pos, br2_pos, br3_pos}
-            local depth = linfo.depth
             if l.returnable then
                 depth = depth + 1 -- hack for special levels
             end
             hilite_pos_side_branch(all_strings, branch_index, depth, max_branch_depth[branch_index], br_pos[branch_index])
         end
 
-
         for d,v in ipairs(world.data.level) do
             if v.episode == episode then
-                if v.branch_lock == "elevator_locked" then -- not tested
-                    hilite_pos_main_branch(all_strings, v.depth, main_pos, "Rx")
+                if v.branch_lock == "elevator_locked" then
+                    hilite_pos_main_branch(all_strings, v.depth - 7 * (episode - 1)
+, main_pos, "Rx")
                 elseif v.branch_lock == "elevator_broken" then
-                    hilite_pos_main_branch(all_strings, v.depth, main_pos, "Yx")
+                    hilite_pos_main_branch(all_strings, v.depth - 7 * (episode - 1)
+, main_pos, "Yx")
                 end
             end
         end
@@ -209,10 +245,10 @@ function run_pda_ui( self, entity )
                         desc = s,
                         cancel = true,
         })
+        list.fsize = 15
     end
     list.title = "JoviSec PDA - HelloS 1.6"
     list.size  = coord( math.max( 30, 36 ), 0 )
-    list.fsize = 15
     ui:terminal( entity, what, list )
 end
 
@@ -251,29 +287,5 @@ register_blueprint "trait_pda"
 }
 
 
-register_blueprint "challenge_test_pda"
-{
-    text = {
-        name   = "Angel of PDA",
-        desc   = "{!MEGA CHALLENGE PACK MOD}",
-        rating = "EASY",
-        abbr   = "AoBR",
-        letter = "B",
-    },
-    challenge = {
-        type      = "challenge",
-    },
-    callbacks = {
-        on_create_player = [[
-            function( self, player )
-                player:attach( "trait_pda" )
-                player:attach( "exo_armor_ablative" )
-                player:attach( "adv_helmet_blue" )
-                player:attach( "exo_egls" )
-                player:attach( "exo_cpistol" )
-                player.progression.experience = 10000
-            end
-        ]],
-    },
-}
+AttachInBlueprint("player","trait_pda")
 
