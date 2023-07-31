@@ -1,17 +1,3 @@
-function AttachInBlueprint(target_id,add_id)
-    -- function by Deemzul
-    local orig_string = blueprints[target_id].callbacks["on_create"]
-    local i = 0
-    local v = 0
-    while true do
-      i = orig_string:find("end", i+1)
-      if i == nil then break end
-      v = i
-    end
-    local addstring = [[self:attach( "]]..add_id..[[" ) end]] -- space and newline are functionally the same
-    blueprints[target_id].callbacks["on_create"] = orig_string:sub(1, v - 1)..addstring
-end
-
 function set_branch_name(all_strings, name, xy)
     if name~=nil then
         local x = xy[1]
@@ -286,6 +272,11 @@ register_blueprint "trait_pda"
     },
 }
 
+cpiod_pda = {}
+function cpiod_pda.on_entity( entity )
+    if entity.data and entity.data.ai and entity.data.ai.group == "player" then
+        entity:attach( "trait_pda" )
+    end 
+end
 
-AttachInBlueprint("player","trait_pda")
-
+world.register_on_entity( cpiod_pda.on_entity )
