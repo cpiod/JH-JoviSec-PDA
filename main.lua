@@ -110,9 +110,9 @@ function run_pda_ui( self, entity )
     local episode = linfo.episode
     local depth = linfo.depth
 
-    for k,v in pairs(l) do
-        nova.log(tostring(k).." "..tostring(v))
-    end
+    -- for k,v in pairs(l) do
+    --     nova.log(tostring(k).." "..tostring(v))
+    -- end
 
     depth = depth - 7 * (episode - 1)
 
@@ -122,8 +122,8 @@ function run_pda_ui( self, entity )
 
     for _,v in ipairs(world.data.level) do
         for i = 1,4 do
-            if v.branch_index == branch_index[episode][i] and names[v.blueprint] ~= nil then
-                nova.log("Branch: "..names[v.blueprint])
+            if episode < 4 and v.branch_index == branch_index[episode][i] and names[v.blueprint] ~= nil then
+                -- nova.log("Branch: "..names[v.blueprint])
                 name_br[i] = names[v.blueprint]
                 if i == 2 then
                     level_2_depth = level_2_depth + 1
@@ -132,7 +132,7 @@ function run_pda_ui( self, entity )
         end
     end
 
-    nova.log("Level 2 depth: "..level_2_depth)
+    -- nova.log("Level 2 depth: "..level_2_depth)
 
     if level_2_depth < 2 or level_2_depth > 3 then
         table.insert( list, {
