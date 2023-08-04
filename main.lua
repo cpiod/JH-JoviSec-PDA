@@ -133,7 +133,8 @@ function run_pda_ui( self, entity )
     end
 
     -- nova.log("Level 2 depth: "..level_2_depth)
-
+	local trait = entity:child("trait_pda")
+	updated = self.attributes.updated
     if level_2_depth < 2 or level_2_depth > 3 then
         table.insert( list, {
                 name = "Map",
@@ -174,6 +175,13 @@ function run_pda_ui( self, entity )
                     name = "Map",
                     target = self,
                     desc = "Unknown location",
+                    cancel = true,
+            })
+	elseif updated == 0 then
+            table.insert( list, {
+                    name = "Map",
+                    target = self,
+                    desc = "Update your map from a terminal!",
                     cancel = true,
             })
     else
@@ -247,6 +255,9 @@ register_blueprint "trait_pda"
         full   = "INTERNAL",
         abbr   = "PDA",
     },
+	attributes = {
+		updated = 0, -- 0 if the player needs to update their map from a terminal, 1 if they have already done so.
+	},
     callbacks = {
 
         on_use = [=[
@@ -265,6 +276,31 @@ register_blueprint "trait_pda"
                 return 0
             end
         ]=],
+		on_enter_level = [=[
+			function ( self, entity, reenter )
+				local linfo = world:get_level().level_info
+				local episode = linfo.episode
+				local depth = linfo.depth
+				depth = depth - 7 * (episode - 1)
+				if depth == 1 then
+					self.attributes.updated = 0
+				end
+				if depth > 1 and self.attributes.updated == 0 and episode <= 3 then
+					if reenter then return end
+					local terminal = false
+					local level = world:get_level()
+					for e in level:entities() do
+						if world:get_id( e ) == "terminal" then
+							terminal = e
+						end
+					end
+					if terminal then
+						terminal:attach( "event_pda_update" )
+					end
+				end
+			end
+					
+		]=],--Resets updated to 0 when the player enters a new moon. Adds the option to update the map to the terminal if not on the first level of a moon and not on Dante.
     },
     skill = {
         cooldown = 0,
@@ -280,3 +316,30 @@ function cpiod_pda.on_entity( entity )
 end
 
 world.register_on_entity( cpiod_pda.on_entity )
+
+register_blueprint "event_pda_update"
+{
+	flags = { EF_NOPICKUP }, 
+	text = {
+		entry    = "Update PDA map",
+        complete = "PDA map updated",
+		desc      = "Update PDA map to display current location"
+	},
+	data = {
+		terminal = {
+			priority = 9,
+		},
+    },
+	callbacks = {
+		on_activate = [=[
+		function( self, who, level )
+			local parent  = ecs:parent( self )
+			local trait = who:child("trait_pda")
+			trait.attributes.updated = 1
+			ui:set_hint( "{R".."Map updated".."}", 1001, 0 )
+			world:destroy( self )
+			ui:activate_terminal( who, parent )
+		end
+		]=]--Changes updated to 1 when the option is selected on a terminal.
+	}
+}
