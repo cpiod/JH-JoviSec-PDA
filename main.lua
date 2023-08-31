@@ -310,7 +310,8 @@ register_blueprint "trait_pda"
 
 cpiod_pda = {}
 function cpiod_pda.on_entity( entity )
-    if entity.data and entity.data.ai and entity.data.ai.group == "player" then
+    -- don’t attach PDA on non-standard games
+    if entity.data and entity.data.ai and entity.data.ai.group == "player" and #world.data.level > 60 and #world.data.level <= 68 then
         entity:attach( "trait_pda" )
     end 
 end
