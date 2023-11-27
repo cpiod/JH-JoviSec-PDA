@@ -24,37 +24,37 @@ function run_pda_ui( self, entity )
     local list = {}
     local strings_3 = {
     "L1                 {!o}\n",
-    "                   {d|}  ERROR!\n",
-    "L2                 {!o}{d--------\\}\n",
-    "        ERROR!     {d|        |}\n",
-    "L3    {d/------------}{!o}        {!o}\n",
-    "      {d|            |        |}\n",
-    "L4    {!o}        {d/---}{!o}        {d}{!o}\n",
-    "      {d|        |   |} ERROR! {d|}\n",
-    "L5    {!o}        {!o}   {!o}{d-}{mo}      {!o}{d-}{mo}\n",
-    "      {d|} ERROR! {d|   |        |}\n",
-    "L6  {mo}{d-}{!o}      {mo}{d-}{!o}   {!o}{d--------/}\n",
-    "      {d|        |   |}\n",
-    "L7    {d\\--------+---}{!o}\n",
-    "                   {d|}\n",
+    "                   {d}  ERROR!\n",
+    "L2                 {!o}{d}\n",
+    "        ERROR!     {d        }\n",
+    "L3    {d}{!o}        {!o}\n",
+    "      {d                    }\n",
+    "L4    {!o}        {d}{!o}        {d}{!o}\n",
+    "      {d           } ERROR! {d}\n",
+    "L5    {!o}        {!o}   {!o}{d}{mo}      {!o}{d}{mo}\n",
+    "      {d} ERROR! {d           }\n",
+    "L6  {mo}{d}{!o}      {mo}{d}{!o}   {!o}{d}\n",
+    "      {d           }\n",
+    "L7    {d}{!o}\n",
+    "                   {d}\n",
     "{GX}: you  {Rx}: red lock  {Yx}: mt lock"
     }
 
     local strings_2 = {
     "L1                 {!o}\n",
-    "        ERROR!     {d|}\n",
-    "L2    {d/------------}{!o}\n",
-    "      {d|            |}\n",
-    "L3    {!o}        {d/---}{!o}\n",
-    "      {d|        |   |}  ERROR!\n",
-    "L4    {!o}        {!o}   {!o}{d--------\\}\n",
-    "      {d|} ERROR! {d|   |        |}\n",
-    "L5  {mo}{d-}{!o}      {mo}{d-}{!o}   {!o}{d-}{mo}      {!o}\n",
-    "      {d|        |   |} ERROR! {d|}\n",
-    "L6    {d\\--------+---}{!o}        {!o}{d-}{mo}\n",
-    "                   {d|        |}\n",
-    "L7                 {!o}{d--------/}\n",
-    "                   {d|}\n",
+    "        ERROR!     {d}\n",
+    "L2    {d}{!o}\n",
+    "      {d            }\n",
+    "L3    {!o}        {d}{!o}\n",
+    "      {d           }  ERROR!\n",
+    "L4    {!o}        {!o}   {!o}{d}\n",
+    "      {d} ERROR! {d           }\n",
+    "L5  {mo}{d}{!o}      {mo}{d}{!o}   {!o}{d}{mo}      {!o}\n",
+    "      {d           } ERROR! {d}\n",
+    "L6    {d}{!o}        {!o}{d}{mo}\n",
+    "                   {d        }\n",
+    "L7                 {!o}{d}\n",
+    "                   {d}\n",
     "{GX}: you  {Rx}: red lock  {Yx}: multitool lock"
     }
 
@@ -239,7 +239,7 @@ function run_pda_ui( self, entity )
     end
 
     list.title = "JoviSec PDA - HelloS 1.6"
-    list.size  = coord( math.max( 30, 56 ), 0 )
+    list.size  = coord( 56, 0 )
     ui:terminal( entity, what, list )
 end
 
