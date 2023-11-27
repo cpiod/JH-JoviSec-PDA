@@ -22,7 +22,6 @@ end
 
 function run_pda_ui( self, entity )
     local list = {}
-    list.fsize = 1
     local strings_3 = {
     "L1                 {!o}\n",
     "                   {d|}  ERROR!\n",
@@ -56,7 +55,7 @@ function run_pda_ui( self, entity )
     "                   {d|        |}\n",
     "L7                 {!o}{d--------/}\n",
     "                   {d|}\n",
-    "{GX}: you  {Rx}: red lock  {Yx}: mt lock"
+    "{GX}: you  {Rx}: red lock  {Yx}: multitool lock"
     }
 
     local all_strings = {strings_2, strings_3}
@@ -132,9 +131,27 @@ function run_pda_ui( self, entity )
         end
     end
 
+    local logl = math.min(#cpiod_log, 15)
+    local desc = ""
+    for i=1,logl do
+        desc = desc..cpiod_log[#cpiod_log-i+1]
+        if i < logl then
+            desc = desc.."\n"
+        end
+    end
+    list.fsize = logl
+
+    table.insert( list, {
+        name = "Log",
+        target = self,
+        desc = desc,
+        cancel = true,
+    })
+
+
     -- nova.log("Level 2 depth: "..level_2_depth)
-	local trait = entity:child("trait_pda")
-	updated = self.attributes.updated
+    local trait = entity:child("trait_pda")
+    updated = self.attributes.updated
     if level_2_depth < 2 or level_2_depth > 3 then
         table.insert( list, {
                 name = "Map",
@@ -142,27 +159,6 @@ function run_pda_ui( self, entity )
                 desc = "Unknown location",
                 cancel = true,
         })
-    elseif episode == 1 and depth <= 1 then
-            table.insert( list, {
-                    name = "Map",
-                    target = self,
-                    desc = "Go to Callisto L2!",
-                    cancel = true,
-    })
-    elseif episode == 2 and depth <= 1 then
-            table.insert( list, {
-                    name = "Map",
-                    target = self,
-                    desc = "Go to Europa L2!",
-                    cancel = true,
-    })
-    elseif episode == 3 and depth <= 1 then
-            table.insert( list, {
-                    name = "Map",
-                    target = self,
-                    desc = "Go to Io L2!",
-                    cancel = true,
-    })
     elseif episode == 4 then
             table.insert( list, {
                     name = "Map",
@@ -181,7 +177,7 @@ function run_pda_ui( self, entity )
             table.insert( list, {
                     name = "Map",
                     target = self,
-                    desc = "Update your map from a terminal!",
+                    desc = "Download the map from a terminal!",
                     cancel = true,
             })
     else
@@ -229,7 +225,7 @@ function run_pda_ui( self, entity )
 
         local s = ""
         for i = 1,15 do
-            s = s .. all_strings[i]
+            s = s .. "         " .. all_strings[i]
         end
     --    iterate over all quest message. check jh.lua, line 1026
 
@@ -239,10 +235,11 @@ function run_pda_ui( self, entity )
                         desc = s,
                         cancel = true,
         })
-        list.fsize = 15
+        list.fsize = math.max(list.fsize, 15)
     end
+
     list.title = "JoviSec PDA - HelloS 1.6"
-    list.size  = coord( math.max( 30, 36 ), 0 )
+    list.size  = coord( math.max( 30, 56 ), 0 )
     ui:terminal( entity, what, list )
 end
 
@@ -287,15 +284,11 @@ register_blueprint "trait_pda"
 				end
 				if depth > 1 and self.attributes.updated == 0 and episode <= 3 then
 					if reenter then return end
-					local terminal = false
 					local level = world:get_level()
 					for e in level:entities() do
 						if world:get_id( e ) == "terminal" then
-							terminal = e
+                            e:attach( "event_pda_update" )
 						end
-					end
-					if terminal then
-						terminal:attach( "event_pda_update" )
 					end
 				end
 			end
@@ -313,18 +306,109 @@ function cpiod_pda.on_entity( entity )
     -- don’t attach PDA on non-standard games
     if entity.data and entity.data.ai and entity.data.ai.group == "player" and #world.data.level > 60 and #world.data.level <= 68 then
         entity:attach( "trait_pda" )
-    end 
+    end
+    if entity.data and entity.data.ai then
+        entity:attach( "cpiod_logger" )
+    end
 end
 
 world.register_on_entity( cpiod_pda.on_entity )
+
+cpiod_log = {}
+cpiod_wait = 0
+
+register_blueprint "cpiod_logger"
+{
+	flags = { EF_NOPICKUP }, 
+	text = {
+		entry    = "Download map to PDA",
+        complete = "PDA map downloaded",
+		desc      = "Download the map to PDA to display current location"
+	},
+	data = {
+		terminal = {
+			priority = 9,
+		},
+    },
+	attributes = {
+		last_entry = nil,
+	},
+	callbacks = {
+		on_receive_damage = [=[
+			function ( self, entity, source, weapon, amount )
+                -- destination must have an AI to avoid "X attacks crates/barrel/etc."
+                -- but keep them as source (to know if a barrel destroyed an enemy for example)
+                if amount > 0 then
+                    if source and source.data and source.data.ai and source.data.ai.group == "player" then
+                        table.insert(cpiod_log, "You deal {!"..tostring(amount).."} to {!"..world:get_text( world:get_id(entity), "name" ).."}")
+                    else
+                        local s = world:get_text( world:get_id(source), "name" )
+                        s = string.upper(s:sub(1,1))..s:sub(2,#s)
+                        table.insert(cpiod_log, "{!"..s.."} deals {!"..tostring(amount).."} to {!"..world:get_text( world:get_id(entity), "name" ).."}")
+                    end
+                    self.attributes.last_entry = #cpiod_log
+                    cpiod_wait = 0
+                end
+            end
+		]=],
+		on_die = [=[
+			function ( self )
+                if self.attributes.last_entry then
+                    cpiod_log[self.attributes.last_entry] = cpiod_log[self.attributes.last_entry]..", killing it"
+                end
+            end
+		]=],
+		on_enter_level = [=[
+            function ( self, entity, reenter )
+                for k,v in pairs(cpiod_log) do -- delete previous logs
+                    cpiod_log[k] = nil
+                end
+                cpiod_log[1] = "You enter {!".. world.data.level[world.data.current].name.."}"
+            end
+		]=],
+		on_post_command = [=[
+			function ( self, entity, cmt, target, time )
+                if entity.data and entity.data.ai and entity.data.ai.group == "player" then
+                    if cmt == COMMAND_WAIT then
+                        cpiod_wait = cpiod_wait + 1
+                        if cpiod_wait == 1 then
+                            table.insert(cpiod_log, "You wait")
+                        else
+                            cpiod_log[#cpiod_log] = "You wait ("..cpiod_wait.." times)"
+                        end
+                    -- elseif cmt == COMMAND_DROP then
+                    --     table.insert(cpiod_log, "You drop "..world:get_text( world:get_id(target), "name" ))
+                    --     cpiod_wait = false
+                    -- elseif cmt == COMMAND_PICKUP then
+                    --     table.insert(cpiod_log, "You pick up "..world:get_text( world:get_id(target), "name" ))
+                    --     cpiod_wait = false
+                    elseif cmt == COMMAND_RELOAD then
+                        table.insert(cpiod_log, "You reload")
+                        cpiod_wait = 0
+                    end
+                end
+            end
+		]=],
+
+		on_rearm = [=[
+			function ( self, entity, wpn, wpn_next )
+                if entity.data and entity.data.ai and entity.data.ai.group == "player" then
+                    table.insert(cpiod_log, "You equip {!"..world:get_text( world:get_id(wpn), "name" ).."}")
+                    cpiod_wait = 0
+                end
+            end
+		]=],
+
+	}
+}
 
 register_blueprint "event_pda_update"
 {
 	flags = { EF_NOPICKUP }, 
 	text = {
-		entry    = "Update PDA map",
-        complete = "PDA map updated",
-		desc      = "Update PDA map to display current location"
+		entry    = "Download map to PDA",
+        complete = "PDA map downloaded",
+		desc      = "Download the map to PDA to display current location"
 	},
 	data = {
 		terminal = {
@@ -337,7 +421,7 @@ register_blueprint "event_pda_update"
 			local parent  = ecs:parent( self )
 			local trait = who:child("trait_pda")
 			trait.attributes.updated = 1
-			ui:set_hint( "{R".."Map updated".."}", 1001, 0 )
+			ui:set_hint( "{R".."Map downloaded".."}", 1001, 0 )
 			world:destroy( self )
 			ui:activate_terminal( who, parent )
 		end
