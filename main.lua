@@ -363,7 +363,9 @@ register_blueprint "cpiod_logger"
                 for k,v in pairs(cpiod_log) do -- delete previous logs
                     cpiod_log[k] = nil
                 end
-                cpiod_log[1] = "You enter {!".. world.data.level[world.data.current].name.."}"
+                if world.data.level[world.data.current].name then
+                    cpiod_log[1] = "You enter {!".. world.data.level[world.data.current].name.."}"
+                end
             end
 		]=],
 		on_post_command = [=[
